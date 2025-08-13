@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Секретная Игра-Кликер</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+            background-color: #272727;
+        }
+        .boss-container {
+            margin: 10px;
+            padding: 20px;
+            background-color: #ffffc6;
+            border: 5px solid black;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            color: black;
+        }
+        .boss-image {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin: 10px auto;
+            border: 3px solid red;
+            transition: transform 0.1s;
+        }
+        .boss-image.hit {
+            transform: scale(1.05);
+        }
+        .health-bar {
+            width: 300px;
+            height: 30px;
+            background-color: black;
+            margin: 10px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            border: solid red;
+        }
+        .health-progress {
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+        }
+        #attackBtn {
+            background-color: #ff4444;
+            color: white;
+            border: solid black;
+        }
+        #upgradeBtn {
+            background-color: #00ff7e;
+            color: white;
+            position: relative;
+            border: solid black;
+        }
+        #upgradeBtn:hover {
+            background-color: #00a451;
+        }
+        #attackBtn:hover {
+            background-color: #a62e2e;
+        }
+        #upgradeBtn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            border: solid red;
+            color: black;
+        }
+        .timer {
+            font-size: 14px;
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: blue;
+            margin-bottom: -25px;
+            border: solid red;
+            border-radius: 5px;
+            background-color: lightgrey;
+        }
+        .stats {
+            margin-top: 20px;
+            font-size: 20px;
+            border: solid black;
+            border-radius: 15px;
+            background-color: yellow;
+        }
+        #bossesKilled {
+            font-size: 24px;
+            color: white;
+            border: 2px solid white;
+            border-radius: 25px;
+            background-color: black;
+        }
+        #currentDamage {
+            font-size: 24px;
+            color: white;
+            border: 2px solid white;
+            border-radius: 25px;
+            background-color: black;
+        }
+        .message-box {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+        width: 200px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        text-align: center;
+        font-size: 16px;
+        display: none;
+        border-radius: 5px;
+        word-wrap: break-word; /* Перенос текста на новую строку */
+        padding: 10px; /* Добавляем отступы для улучшения читаемости */
+}
+    </style>
+</head>
+<body>
+    <div id="messageBox" class="message-box"></div>
+    <div class="boss-container">
+        <h2 id="bossName">Босс</h2>
+        <p>Уровень: <span id="bossLevel">1</span></p>
+        <img id="bossImage" class="boss-image" src="https://cdn.glitch.global/1584c047-6111-4e8b-98d1-b725da2fb99f/export202503080012263374.jpg?v=1741382645426">
+        <div class="health-bar">
+            <div class="health-progress" id="healthProgress"></div>
+        </div>
+        <p>HP: <span id="currentHP">1000</span>/<span id="maxHP">1000</span></p>
+        <button id="attackBtn" onclick="attack()">Удар!</button>
+        <br>
+        <button id="upgradeBtn" onclick="upgradeDamage()" disabled>
+            Урон+1
+            <div class="timer" id="timer"></div>
+        </button>
+    </div>
+    <div class="stats">
+        <p>Убито боссов: <span id="bossesKilled">0</span></p>
+        <p>Текущий урон: <span id="currentDamage">1</span></p>
+    </div>
+
+    <script>
+        const bosses = [
+            { name: 'Гоблин Вождь', image: 'https://cdn.glitch.global/1584c047-6111-4e8b-98d1-b725da2fb99f/%D0%BC%D0%B0%D0%BB-%D0%B3%D0%BE%D0%B1%D0%BB%D0%B8%D0%BD.webp?v=1741380075727' },
+            { name: 'Человек-Ящер', image: 'https://cdn.glitch.global/1584c047-6111-4e8b-98d1-b725da2fb99f/%D0%BC%D0%B0%D0%BB-%D1%87%D0%B5%D0%BB-%D1%8F%D1%89%D0%B5%D1%80_image.webp?v=1741380038455' },
+            { name: 'Огненный демон', image: 'https://cdn.glitch.global/1584c047-6111-4e8b-98d1-b725da2fb99f/%D0%BC%D0%B0%D0%BB-%D0%B4%D0%B5%D0%BC%D0%BE%D0%BD%D0%BE%D0%B3%D0%BD%D1%8F.webp?v=1741380072433' },
+            { name: 'Ледяной гигант', image: 'https://cdn.glitch.global/1584c047-6111-4e8b-98d1-b725da2fb99f/%D0%BC%D0%B0%D0%BB-%D0%BB%D0%B5%D0%B4%D1%8F%D0%BD%D0%BE%D0%B9%D0%B4%D0%B5%D0%BC%D0%BE%D0%BD.webp?v=1741380067105' },
+            { name: 'демон ветра', image: '' },
+            { name: 'Демон богатства и жадности', image: '' },
+            { name: 'Демон кошмарных снов', image: '' },
+            { name: 'Демон обмана', image: '' },
+            { name: 'Демонесса похоти', image: '' },
+            { name: 'Гигатская сколопендра', image: '' },
+            { name: 'Стая волков тьмы', image: '' },
+            { name: 'Демон властитель  псов нижнего мира', image: '' },
+            { name: 'Воин засухи', image: '' },
+            { name: 'Демон часовщик', image: '' },
+            { name: 'Адские псы', image: '' },
+            { name: 'Братья некроманты', image: '' },
+            { name: 'Хранитель адских душ', image: '' },
+            { name: 'Левиафан', image: '' },
+            { name: 'Князь луны и тени', image: '' },
+            { name: 'Страж ада', image: '' },
+            { name: 'Король мумий', image: 'https://cdn.glitch.global/1584c047-6111-4e8b-98d1-b725da2fb99f/%D0%BC%D0%B0%D0%BB-%D0%BC%D1%83%D0%BC%D0%BC%D0%B8%D1%8F_image.webp?v=1741380063217' }
+        ];
+
+        let gameState = {
+            bossesKilled: 0,
+            currentDamage: 1,
+            nextUpgradeTime: 0,
+            currentBoss: {
+                level: 1,
+                currentHP: 1000,
+                maxHP: 1000,
+                name: bosses[0].name,
+                image: bosses[0].image
+            }
+        };
+
+        function loadGame() {
+            const saved = localStorage.getItem('bossClicker');
+            if (saved) {
+                gameState = JSON.parse(saved);
+                gameState.nextUpgradeTime = parseInt(gameState.nextUpgradeTime);
+                updateUI();
+                checkUpgradeTimer();
+            }
+        }
+
+        function saveGame() {
+            localStorage.setItem('bossClicker', JSON.stringify(gameState));
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('bossesKilled').textContent = gameState.bossesKilled;
+            document.getElementById('currentDamage').textContent = gameState.currentDamage;
+            document.getElementById('bossLevel').textContent = gameState.currentBoss.level;
+            document.getElementById('currentHP').textContent = gameState.currentBoss.currentHP;
+            document.getElementById('maxHP').textContent = gameState.currentBoss.maxHP;
+            document.getElementById('healthProgress').style.width = 
+                (gameState.currentBoss.currentHP / gameState.currentBoss.maxHP * 100) + '%';
+            document.getElementById('bossName').textContent = gameState.currentBoss.name;
+            document.getElementById('bossImage').src = gameState.currentBoss.image;
+        }
+
+        function attack() {
+            const bossImage = document.getElementById('bossImage');
+            bossImage.classList.add('hit');
+            setTimeout(() => bossImage.classList.remove('hit'), 100);
+
+            gameState.currentBoss.currentHP -= gameState.currentDamage;
+            if(gameState.currentBoss.currentHP <= 0) {
+                gameState.bossesKilled++;
+                spawnNewBoss();
+            }
+            saveGame();
+        }
+
+        function spawnNewBoss() {
+            const randomBoss = bosses[Math.floor(Math.random() * bosses.length)];
+            gameState.currentBoss = {
+                level: gameState.currentBoss.level + 1,
+                currentHP: gameState.currentBoss.maxHP + 1000,
+                maxHP: gameState.currentBoss.maxHP + 1000,
+                name: randomBoss.name,
+                image: randomBoss.image
+            };
+        }
+
+        function upgradeDamage() {
+            gameState.currentDamage++;
+            gameState.nextUpgradeTime = Date.now() + 300000;
+            saveGame();
+            startUpgradeTimer();
+        }
+
+        function startUpgradeTimer() {
+            const upgradeBtn = document.getElementById('upgradeBtn');
+            upgradeBtn.disabled = true;
+            
+            const timerInterval = setInterval(() => {
+                const remaining = gameState.nextUpgradeTime - Date.now();
+                if(remaining <= 0) {
+                    clearInterval(timerInterval);
+                    upgradeBtn.disabled = false;
+                    document.getElementById('timer').textContent = '';
+                    return;
+                }
+                
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                document.getElementById('timer').textContent = 
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function checkUpgradeTimer() {
+            if(Date.now() < gameState.nextUpgradeTime) {
+                startUpgradeTimer();
+            } else {
+                document.getElementById('upgradeBtn').disabled = false;
+            }
+        }
+
+        const messages = [
+            "Тебе не победить!",
+            "Ты справишься со мной только если я стану букашкой!",
+            "Удачи! Я сильнее чем ты мог подумать, слабак! Ах-ха-ха!",
+            "Сосредоточься! Я хочу что бы внимательно рассмотрел того кто сильнее тебя в сотни раз!",
+            "Что бы победить тебя - мне достаточно просто дунуть на тебя!",
+            "Ты на правильном пути! Если это путь програвшего!!!",
+            "Ай - я даже почти почувствовал твой удар. Будто ветерок обдул меня!",
+            "Ах-ха-ха-ха ! и Это всё на что ты способен ?",
+            "Жалкий червь, ты поплатишься за то что бросил мне вызов!!!",
+            "Ты можешь это сделать! Сдавайся и я подумаю пощадить ли тебя!",
+            "После победы над тобой я Разрушу весь твой город до основания!",
+            "Я боюсь лишь гнева бога тьмы - остальные такие же слабые как и ты!",
+            "Ты можешь убить меня, но я воскресну и вернусь гораздо сильнее чем раньше!!!",
+            "Узри мою мощь , простак! Я оставлю от тебя только мокрое место! Ха-ха-ха!",
+            "Я воплощение самых жутких воих кошмаров!",
+            "Ты уже наверняка пожалел что ввязался со мной в бой!",
+            "Для жалкой букашки ты слишком силен! Этого не может быть!",
+            "Даже не думай о победе!",
+            "ААААГГГРРРХХХ!!! Я тебя УНИЧТОЖУ!!!!",
+            "Глупец, Нас много и мы с каждым разом все сильнее!",
+            "МЫ Уничтожим все человечество! Ты нас не остановишь!!!",
+            "Гаро-старо-куви-а! это магия ослабления ! со временем ты ослабнешь и умрешь!",
+            "Я разделаюсь с тобой в два счета!",
+            "Каков наглец! повесели меня, червяк!",
+            "Этот мир заслуживает уничтожения!",
+            "Ваши идеалы ничтожны, людишки!",
+            "Сопротивление бесполезно, жалкое ты создание!",
+            "Слабые всегда проигрывают!",
+            "Мир должен принадлежать сильным!",
+            "Твоя жизнь — мой ресурс!",
+            "Мир создан для меня!",
+            "Да кто ты такой??? Почему ты так силен ???!!!"
+        ];
+
+        function showRandomMessage() {
+            const messageBox = document.getElementById('messageBox');
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            messageBox.textContent = randomMessage;
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 10000); // Сообщение исчезает через 10 секунд
+        }
+
+        setInterval(showRandomMessage, 20000); // Новое сообщение каждые 20 секунд
+
+        loadGame();
+        checkUpgradeTimer();
+    </script>
+</body>
+</html>
