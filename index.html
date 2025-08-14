@@ -126,6 +126,88 @@
     </style>
 </head>
 <body>
+        <!-- Сам элемент кнопки -->
+<div class="play-button">🔊</div>
+<style>
+        /* Стили для кнопки */
+        .play-button {
+    width: 60px;
+    height: 60px;
+    line-height: 60px;
+    text-align: center;
+    border-radius: 50%;
+    background-color: #272727;
+    color: white;
+    font-size: 2rem;
+    position: fixed;
+    top: 5px;
+    right: 5px;
+    z-index: 1000;
+    cursor: pointer;
+    box-shadow: 0px 0px 0px 4px #000000;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+
+        /* Эффекты при наведении */
+        .play-button:hover {
+            transform: scale(1.1);
+            background-color: #ffffc6;
+        }
+
+        /* Мобильная версия */
+        @media screen and (max-width: 768px) {
+            .play-button {
+                width: 50px;
+                height: 50px;
+                line-height: 50px;
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+<script>
+// Переменная для хранения аудиоплеера
+let audioPlayer;
+let musicIsPlaying = false;
+
+// Найдем кнопку
+const playButton = document.querySelector('.play-button');
+
+// Назначаем событие клика на кнопку
+playButton.addEventListener('click', togglePlayPause);
+
+// Функция переключения состояний воспроизведения
+function togglePlayPause() {
+    if (!musicIsPlaying) {
+        startPlayback();
+    } else {
+        stopPlayback();
+    }
+}
+
+// Запускаем воспроизведение
+function startPlayback() {
+    if (!audioPlayer || audioPlayer.paused) {
+        audioPlayer = new Audio('82211c9a72c3705.mp3'); // ваш музыкальный файл
+        audioPlayer.loop = true; // включаем повторение
+        audioPlayer.play()
+            .then(() => {
+                musicIsPlaying = true;
+                playButton.textContent = '⏸️';
+            })
+            .catch((err) => console.error(err));
+    }
+}
+
+// Ставим музыку на паузу
+function stopPlayback() {
+    if (audioPlayer && !audioPlayer.paused) {
+        audioPlayer.pause();
+        musicIsPlaying = false;
+        playButton.textContent = '🔊';
+    }
+}
+</script>
+
     <div id="messageBox" class="message-box"></div>
     <div class="boss-container">
         <h2 id="bossName">Босс</h2>
@@ -324,3 +406,4 @@
 </body>
 
 </html>
+
